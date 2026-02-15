@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="4cbc9d51-5d67-4b41-8b14-cf3669cf2b2d" name="Changes" comment="Project Files">
+      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.env.example" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/TaskManagement.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/API_SPECIFICATION.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ARCHITECTURE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AUTHENTICATION_GUIDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DATABASE_SCHEMA.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DOMAIN_MODEL.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/FEATURE_SPECIFICATIONS.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/IMPLEMENTATION_SUMMARY.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/QUICKSTART.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/QUICK_AUTH.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/agents/ProductAgent.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/agents/QaAgent.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/agents/SeniorSoftwareEngineerAgent.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/agents/SoftwareArchitectAgent.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/agents/SoftwareEngineerAgent.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/alembic.ini" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/commands.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/domain/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/domain/events.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/domain/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/handlers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/queries.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/router.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/auth/schemas.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/config.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/dependencies.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cache/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cache/decorators.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cache/redis_client.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/context.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cqrs/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cqrs/command.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cqrs/mediator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/cqrs/query.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/database.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/events/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/events/dispatcher.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/events/handler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/events/outbox.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/middleware/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/middleware/auth.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/middleware/error_handler.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/middleware/logging.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/middleware/rate_limiter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/middleware/tenant_resolver.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/response.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/security/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/security/authorization.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/security/jwt.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/shared/security/password.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/commands.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/domain/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/domain/aggregates.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/domain/events.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/domain/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/handlers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/queries.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/router.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/task/schemas.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/tenant/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/tenant/domain/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/tenant/domain/events.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/tenant/domain/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/tenant/repository.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/tenant/schemas.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/generate_keys.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/init_db.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/logs/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/postman_collection.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pytest.ini" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/setup.ps1" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/test_auth.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/test_authorization.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/test_security.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/unit/test_task.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/oran-/PycharmProjects/TaskManagement" value="39hMoS7HuzClfgzJxGvJ3pQNKTu" />
+    </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedModel">
+    <selectedModels>
+      <entry key="chat-panel" value="Claude Sonnet 4.5" />
+      <entry key="agent-panel" value="Claude Sonnet 4.5" />
+    </selectedModels>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="FastAPI main" />
+        <option value="FastAPI test_main" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HttpClientOnboardingState">{
+  &quot;isOnboardingCommentShown&quot;: true
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="39hMoS7HuzClfgzJxGvJ3pQNKTu" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;FastAPI.TaskManagement.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/oran-/PycharmProjects/TaskManagement&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\oran-\PycharmProjects\TaskManagement" />
+      <recent name="C:\Users\oran-\PycharmProjects\TaskManagement\agents" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="TaskManagement" type="Python.FastAPI">
+      <option name="file" value="$PROJECT_DIR$/main.py" />
+      <module name="TaskManagement" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="RUN_TOOL" value="" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.30387.173" />
+        <option value="bundled-python-sdk-4762d8aabb82-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.30387.173" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4cbc9d51-5d67-4b41-8b14-cf3669cf2b2d" name="Changes" comment="" />
+      <created>1771144024073</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1771144024073</updated>
+      <workItem from="1771144025294" duration="18282000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Project Files" />
+    <option name="LAST_COMMIT_MESSAGE" value="Project Files" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/app/task/domain/aggregates.py</url>
+          <line>40</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/TaskManagement$TaskManagement.coverage" NAME="TaskManagement Coverage Results" MODIFIED="1771161665954" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>

@@ -1,0 +1,2 @@
+"""Auth domain module initialization."""
+
