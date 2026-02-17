@@ -51,3 +51,18 @@ class RefreshToken(Base):
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, nullable=False, default=get_utc_now)
 
+
+class PasswordResetToken(Base):
+    """Password reset token entity."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    token = Column(String(255), nullable=False, unique=True, index=True)
+    is_used = Column(Boolean, nullable=False, default=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=get_utc_now)
+
+

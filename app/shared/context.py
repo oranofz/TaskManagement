@@ -38,10 +38,3 @@ def set_correlation_id(correlation_id: str) -> None:
     """Set correlation ID in context."""
     correlation_id_context.set(correlation_id)
 
-
-def clear_context() -> None:
-    """Clear all context variables."""
-    tenant_id_context.set(None)
-    user_id_context.set(None)
-    correlation_id_context.set(None)
-

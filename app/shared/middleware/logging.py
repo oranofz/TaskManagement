@@ -4,7 +4,7 @@ from typing import Callable
 from uuid import uuid4
 from fastapi import Request, Response
 from loguru import logger
-from app.shared.context import set_correlation_id, get_correlation_id
+from app.shared.context import set_correlation_id
 
 
 async def logging_middleware(request: Request, call_next: Callable) -> Response:

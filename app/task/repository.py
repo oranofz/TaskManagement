@@ -34,9 +34,11 @@ class TaskRepository:
         user_id: Optional[UUID] = None,
         status: Optional[TaskStatus] = None,
         page: int = 1,
-        page_size: int = 20
+        page_size: int = 20,
+        sort_by: str = "created_at",
+        sort_order: str = "desc"
     ) -> tuple[List[Task], int]:
-        """Get paginated tasks with filters."""
+        """Get paginated tasks with filters and sorting."""
         query = select(Task).where(
             Task.tenant_id == tenant_id,
             Task.is_deleted == False
@@ -55,9 +57,15 @@ class TaskRepository:
         total_result = await self.session.execute(count_query)
         total = total_result.scalar_one()
 
+        # Apply sorting
+        sort_column = getattr(Task, sort_by, Task.created_at)
+        if sort_order.lower() == "asc":
+            query = query.order_by(sort_column.asc())
+        else:
+            query = query.order_by(sort_column.desc())
+
         # Get paginated results
         query = query.offset((page - 1) * page_size).limit(page_size)
-        query = query.order_by(Task.created_at.desc())
 
         result = await self.session.execute(query)
         tasks = list(result.scalars().all())
@@ -98,16 +106,6 @@ class TaskRepository:
         await self.session.refresh(comment)
         logger.info(f"Comment added to task: {comment.task_id}")
         return comment
-
-    async def get_task_comments(self, task_id: UUID, tenant_id: UUID) -> List[Comment]:
-        """Get all comments for a task."""
-        result = await self.session.execute(
-            select(Comment).where(
-                Comment.task_id == task_id,
-                Comment.tenant_id == tenant_id
-            ).order_by(Comment.created_at.asc())
-        )
-        return list(result.scalars().all())
 
     async def add_audit_log(self, audit_log: AuditLogEntry) -> None:
         """Add audit log entry."""

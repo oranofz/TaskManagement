@@ -1,6 +1,5 @@
 """Task domain events."""
 from dataclasses import dataclass
-from uuid import UUID
 from app.shared.events.handler import DomainEvent
 
 

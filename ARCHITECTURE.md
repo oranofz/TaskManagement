@@ -33,7 +33,7 @@
 - **Database:** PostgreSQL 16
 - **Cache:** Redis 7
 - **Validation:** Pydantic v2
-- **Auth:** PyJWT (RS256), passlib (Argon2)
+- **Auth:** python-jose (RS256), passlib (Argon2)
 - **Migrations:** Alembic
 - **Testing:** pytest, pytest-asyncio
 - **Logging:** loguru (structured logging)
@@ -52,7 +52,6 @@
 ```bash
 task_management/
 ├── docker-compose.yml
-├── Dockerfile
 ├── requirements.txt
 ├── alembic.ini
 ├── .env.example
@@ -62,7 +61,6 @@ task_management/
 │   ├── __init__.py
 │   ├── main.py
 │   ├── config.py
-│   ├── dependencies.py
 │   ├── auth/
 │   │   ├── commands.py
 │   │   ├── queries.py
@@ -71,20 +69,14 @@ task_management/
 │   │   │   ├── models.py
 │   │   │   └── events.py
 │   │   ├── schemas.py
-│   │   ├── service.py
 │   │   ├── repository.py
 │   │   └── router.py
 │   ├── tenant/
-│   │   ├── commands.py
-│   │   ├── queries.py
-│   │   ├── handlers.py
 │   │   ├── domain/
-│   │   │   ├── models.py
-│   │   │   └── events.py
+│   │   │   └── models.py
 │   │   ├── schemas.py
-│   │   ├── service.py
 │   │   ├── repository.py
-│   │   └── router.py
+│   │   # Note: an HTTP router for tenant management (`app/tenant/router.py`) is not present in the repository; tenant endpoints in the architecture are planned or can be implemented as needed.
 │   ├── task/
 │   │   ├── commands.py
 │   │   ├── queries.py
@@ -94,38 +86,35 @@ task_management/
 │   │   │   ├── events.py
 │   │   │   └── aggregates.py
 │   │   ├── schemas.py
-│   │   ├── service.py
 │   │   ├── repository.py
 │   │   └── router.py
-│   ├── shared/
-│   │   ├── cqrs/
-│   │   │   ├── mediator.py
-│   │   │   ├── command.py
-│   │   │   └── query.py
-│   │   ├── events/
-│   │   │   ├── dispatcher.py
-│   │   │   ├── handler.py
-│   │   │   └── outbox.py
-│   │   ├── middleware/
-│   │   │   ├── error_handler.py
-│   │   │   ├── logging.py
-│   │   │   ├── tenant_resolver.py
-│   │   │   ├── auth.py
-│   │   │   └── rate_limiter.py
-│   │   ├── security/
-│   │   │   ├── jwt.py
-│   │   │   ├── password.py
-│   │   │   └── authorization.py
-│   │   ├── cache/
-│   │   │   ├── redis_client.py
-│   │   │   └── decorators.py
-│   │   ├── database.py
-│   │   └── context.py
-│   └── migrations/
-│       └── versions/
+│   └── shared/
+│       ├── cqrs/
+│       │   ├── mediator.py
+│       │   ├── command.py
+│       │   └── query.py
+│       ├── events/
+│       │   ├── dispatcher.py
+│       │   └── handler.py
+│       ├── middleware/
+│       │   ├── error_handler.py
+│       │   ├── logging.py
+│       │   ├── tenant_resolver.py
+│       │   ├── auth.py
+│       │   └── rate_limiter.py
+│       ├── security/
+│       │   ├── jwt.py
+│       │   ├── password.py
+│       │   └── authorization.py
+│       ├── cache/
+│       │   ├── redis_client.py
+│       │   └── decorators.py
+│       ├── database.py
+│       ├── response.py
+│       └── context.py
 └── tests/
     ├── unit/
-    ├── integration/
+    ├── test_observability.py
     └── conftest.py
 ```
 
@@ -223,7 +212,31 @@ flowchart TD
 
 ## 8. Multi-Tenancy Strategy
 
-**Tenant Resolution:** Subdomain → Header `X-Tenant-Id` → JWT claim `tenant_id`
+**Tenant Resolution (in order of precedence):**
+
+1. **Subdomain-based**: Extract tenant from request host (e.g., `tenant1.example.com` → `tenant1`)
+   - Subdomain is looked up in database to get `tenant_id`
+   - Results are cached in Redis for 5 minutes
+   - Reserved subdomains (`www`, `api`, `app`, `admin`) are ignored
+   
+2. **Header-based**: `X-Tenant-Id` header with tenant UUID
+   
+3. **JWT claim**: `tenant_id` claim in JWT token (set during authentication middleware)
+
+**Implementation Location:** `app/shared/middleware/tenant_resolver.py`
+
+**Subdomain Resolution Flow:**
+```python
+# Extract subdomain from host header
+host = request.headers.get("host")  # e.g., "tenant1.example.com:8000"
+subdomain = extract_subdomain(host)  # "tenant1"
+
+# Resolve to tenant_id
+tenant_id = await resolve_tenant_from_subdomain(subdomain)
+# 1. Check Redis cache: "tenant:subdomain:tenant1"
+# 2. Fallback to database lookup via TenantRepository
+# 3. Cache result for 5 minutes
+```
 
 **Data Isolation:**
 - Shared database with `tenant_id` discriminator on all tables
@@ -388,7 +401,6 @@ GET    /api/v1/tasks/reports/statistics → GetTaskStatisticsQuery
 
 # Health & Observability
 GET    /health                        → Health check (DB, Redis, dependencies)
-GET    /metrics                       → Prometheus metrics
 ```
 
 ## 13. Data Model (Pydantic Schemas)
@@ -479,9 +491,44 @@ class TenantResponse(BaseModel):
 - `/ready`: Application ready to serve traffic (Kubernetes readiness probe)
 - `/live`: Application liveness check (Kubernetes liveness probe)
 
-**Distributed Tracing:** OpenTelemetry instrumentation for FastAPI, SQLAlchemy, Redis
+**Distributed Tracing (OpenTelemetry):**
 
-**Correlation ID:** Generated per request, passed through all layers, logged in all entries
+The system implements full distributed tracing using OpenTelemetry, providing end-to-end visibility across all components:
+
+**Components Instrumented:**
+- FastAPI (HTTP requests, middleware)
+- SQLAlchemy (database queries)
+- Redis (cache operations)
+
+**Configuration:**
+```python
+# Environment variables
+OTLP_ENDPOINT=http://jaeger:4317  # OTLP gRPC endpoint (optional)
+OTEL_SERVICE_NAME=task-management-system
+OTEL_ENABLED=true
+```
+
+**Tracing Features:**
+- Automatic span creation for HTTP requests
+- Database query tracing with query text
+- Cache operation tracing (get/set/delete)
+- Manual span creation for business operations
+- Context propagation across service boundaries (W3C Trace Context)
+- Exception recording with stack traces
+
+**Implementation Location:** `app/shared/observability/tracing.py`
+
+**Usage Example:**
+```python
+from app.shared.observability.tracing import create_span, add_span_attributes
+
+# Manual span for business logic
+with create_span("process_task_assignment"):
+    add_span_attributes(task_id=str(task.id), assignee=str(user.id))
+    # ... business logic
+```
+
+**Correlation ID:** Generated per request, passed through all layers, logged in all entries, included in trace spans
 
 ## 14.1. API Response Format Standards
 

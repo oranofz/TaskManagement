@@ -1,5 +1,53 @@
 # Implementation Summary
 
+## Recent Compliance Updates
+
+### Distributed Tracing (OpenTelemetry) ✅ NEW
+- Full OpenTelemetry integration for distributed tracing
+- **Instrumented Components**:
+  - FastAPI (HTTP requests/responses)
+  - SQLAlchemy (database queries)
+  - Redis (cache operations)
+- **Configuration**: `OTLP_ENDPOINT` environment variable for Jaeger/Zipkin/OTLP collector
+- **Features**:
+  - Automatic span creation for HTTP requests
+  - Database query tracing
+  - Context propagation (W3C Trace Context)
+  - Manual span creation for business operations
+  - Exception recording with stack traces
+- **Implementation**: `app/shared/observability/tracing.py`
+
+### Subdomain-Based Tenant Resolution ✅ NEW
+- **Resolution strategies (in order of precedence)**:
+  1. Subdomain extraction (e.g., `tenant1.example.com` → `tenant1`)
+  2. `X-Tenant-ID` header
+  3. JWT token claim
+- **Features**:
+  - Subdomain to tenant_id mapping via database lookup
+  - Redis caching for subdomain resolution (5-minute TTL)
+  - Reserved subdomain filtering (`www`, `api`, `admin`, etc.)
+  - Graceful fallback to header-based resolution
+- **Implementation**: `app/shared/middleware/tenant_resolver.py`
+
+### StandardResponse Wrapper ✅ NEW
+- **Consistent API response format** as per assignment requirements
+- **Response structure**:
+  ```json
+  {
+    "success": true/false,
+    "data": {...},
+    "error": {"code": "...", "message": "..."},
+    "metadata": {"timestamp": "...", "correlation_id": "...", "pagination": {...}}
+  }
+  ```
+- **All API endpoints now use StandardResponse**:
+  - Auth endpoints (register, login, refresh, MFA, password reset)
+  - Task endpoints (CRUD, assign, status, comments, statistics)
+  - Health endpoints (health, ready, live, root)
+- **Implementation**: `app/shared/response.py`
+
+---
+
 ## Completed Components
 
 ### 1. Architecture & Design ✅
@@ -26,6 +74,7 @@
   - 15-minute access tokens, 7-day refresh tokens
   - Refresh token rotation with reuse detection
   - Token family tracking for security
+  - Note: implementation uses `python-jose` for JWT encoding/decoding (library in `requirements.txt`).
 - **Authorization**:
   - Role-Based Access Control (RBAC)
   - Permission-based authorization
@@ -33,9 +82,9 @@
   - Tenant-level isolation
 
 ### 4. Middleware Pipeline ✅
-1. Error Handler - Global exception catching
+1. Error Handler - Global exception catching with StandardResponse format
 2. Request Logging - Structured logging with correlation IDs
-3. Tenant Resolver - Tenant context extraction
+3. Tenant Resolver - Tenant context extraction (subdomain, header, JWT)
 4. Authentication - JWT validation
 5. Rate Limiter - Redis-based sliding window
 6. Security Headers - HSTS, CSP, X-Frame-Options, etc.
@@ -115,7 +164,8 @@
 - Environment configuration (.env.example)
 - JWT key generation script
 - Setup script for Windows (PowerShell)
-- Alembic configuration for migrations
+- Alembic configuration for migrations (alembic.ini present)
+  - Note: repository currently includes `alembic.ini` but the `app/migrations` folder (generated Alembic migrations) is not present. The setup script uses `init_db.py` to create tables. If you prefer migrations, add Alembic migration files under `app/migrations` and run `alembic upgrade head`.
 
 ### 13. Production-Ready Features ✅
 - Health check endpoint with dependency checks
@@ -161,7 +211,7 @@
 ### Event-Driven
 - Domain events emitted on state changes
 - Event dispatcher for decoupled event handling
-- Outbox pattern ready for external message brokers
+- Outbox pattern described (operational pattern), dispatcher and handlers are implemented; note that a dedicated outbox table and background polling worker are not included in the repository and are left as a TODO for reliable cross-process delivery in production.
 - Event versioning support
 
 ### Security Layers
@@ -178,7 +228,7 @@
 - **Database**: PostgreSQL 16
 - **Cache**: Redis 7
 - **Validation**: Pydantic v2
-- **Auth**: PyJWT (RS256), Passlib (Argon2)
+- **Auth**: python-jose (RS256), Passlib (Argon2)
 - **Testing**: pytest, pytest-asyncio
 
 ## File Structure
@@ -284,10 +334,15 @@ TaskManagement/
    - Update database and Redis URLs if needed
    - Set SECRET_KEY to a secure random value
 
-5. **Run Database Migrations**:
-   ```bash
-   alembic upgrade head
-   ```
+5. **Run Database Migrations / Initialize DB**:
+   - If you maintain Alembic migrations, run:
+     ```bash
+     alembic upgrade head
+     ```
+   - Otherwise (current repository state), initialize DB tables using the provided script:
+     ```bash
+     python init_db.py
+     ```
 
 6. **Start Application**:
    ```bash
@@ -302,4 +357,3 @@ TaskManagement/
 ## Summary
 
 A complete, production-ready Enterprise Task Management System has been implemented following the Architecture specification exactly. The system demonstrates senior-level engineering practices including CQRS, DDD, event-driven architecture, multi-tenancy, advanced security, and comprehensive observability. All requirements from the PRD and Architecture document have been met, with proper testing infrastructure and documentation in place.
-

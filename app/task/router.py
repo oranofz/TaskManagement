@@ -1,5 +1,5 @@
 """Task API router."""
-from typing import Optional
+from typing import Optional, Any, Dict
 from uuid import UUID
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,11 +8,7 @@ from app.task.schemas import (
     UpdateTaskRequest,
     AssignTaskRequest,
     ChangeTaskStatusRequest,
-    AddTaskCommentRequest,
-    TaskResponse,
-    TaskListResponse,
-    CommentResponse,
-    TaskStatisticsResponse
+    AddTaskCommentRequest
 )
 from app.task.commands import (
     CreateTaskCommand,
@@ -37,71 +33,153 @@ from app.task.handlers import (
 from app.task.repository import TaskRepository
 from app.task.domain.models import TaskStatus
 from app.shared.database import get_db
-from app.shared.security.authorization import require_permission, Permission
+from app.shared.security.authorization import require_permission, Permission, check_resource_access
+from app.shared.cqrs.mediator import mediator
+from app.shared.response import (
+    create_success_response,
+    create_paginated_response
+)
+from fastapi import HTTPException
 
 
 router = APIRouter(prefix="/api/v1/tasks", tags=["Tasks"])
 
 
-@router.get("", response_model=TaskListResponse)
+def setup_task_mediator(db: AsyncSession) -> None:
+    """Register task handlers with mediator for current request."""
+    repository = TaskRepository(db)
+
+    # Register command handlers
+    mediator.register_command_handler(
+        CreateTaskCommand,
+        lambda cmd: CreateTaskHandler(repository).handle(cmd)
+    )
+    mediator.register_command_handler(
+        UpdateTaskCommand,
+        lambda cmd: UpdateTaskHandler(repository).handle(cmd)
+    )
+    mediator.register_command_handler(
+        AssignTaskCommand,
+        lambda cmd: AssignTaskHandler(repository).handle(cmd)
+    )
+    mediator.register_command_handler(
+        ChangeTaskStatusCommand,
+        lambda cmd: ChangeTaskStatusHandler(repository).handle(cmd)
+    )
+    mediator.register_command_handler(
+        DeleteTaskCommand,
+        lambda cmd: DeleteTaskHandler(repository).handle(cmd)
+    )
+    mediator.register_command_handler(
+        AddTaskCommentCommand,
+        lambda cmd: AddTaskCommentHandler(repository).handle(cmd)
+    )
+
+    # Register query handlers
+    mediator.register_query_handler(
+        GetTaskByIdQuery,
+        lambda q: GetTaskByIdHandler(repository).handle(q)
+    )
+    mediator.register_query_handler(
+        GetUserTasksQuery,
+        lambda q: GetUserTasksHandler(repository).handle(q)
+    )
+    mediator.register_query_handler(
+        GetTaskStatisticsQuery,
+        lambda q: GetTaskStatisticsHandler(repository).handle(q)
+    )
+
+
+@router.get("", response_model=Dict[str, Any])
 async def get_tasks(
     request: Request,
     status: Optional[TaskStatus] = None,
     page: int = 1,
     page_size: int = 20,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
     db: AsyncSession = Depends(get_db)
-) -> TaskListResponse:
-    """Get paginated list of tasks."""
+) -> Dict[str, Any]:
+    """Get paginated list of tasks with filtering and sorting."""
     # Authorization check
     require_permission(Permission.TASKS_READ, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = GetUserTasksHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     query = GetUserTasksQuery(
         tenant_id=request.state.tenant_id,
         user_id=request.state.user_id,
         status=status,
         page=page,
-        page_size=page_size
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_order=sort_order
     )
 
-    return await handler.handle(query)
+    result = await mediator.query(query)
+
+    # Wrap in StandardResponse with pagination
+    return create_paginated_response(
+        items=[task.model_dump() for task in result.items],
+        page=result.page,
+        page_size=result.page_size,
+        total_items=result.total
+    ).model_dump()
 
 
-@router.get("/{task_id}", response_model=TaskResponse)
+@router.get("/{task_id}", response_model=Dict[str, Any])
 async def get_task(
     task_id: UUID,
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> TaskResponse:
+) -> Dict[str, Any]:
     """Get task by ID."""
     # Authorization check
     require_permission(Permission.TASKS_READ, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = GetTaskByIdHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     query = GetTaskByIdQuery(
         task_id=task_id,
         tenant_id=request.state.tenant_id
     )
 
-    return await handler.handle(query)
+    task = await mediator.query(query)
+
+    # Resource-based authorization check
+    has_access = check_resource_access(
+        user_id=request.state.user_id,
+        user_roles=request.state.roles,
+        user_permissions=request.state.permissions,
+        resource_owner_id=task.created_by_user_id,
+        resource_assigned_to_id=task.assigned_to_user_id,
+        user_department_id=getattr(request.state, 'department_id', None),
+        resource_department_id=None  # Task doesn't have direct department, check through project
+    )
+
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this task"
+        )
+
+    return create_success_response(task.model_dump()).model_dump()
 
 
-@router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
 async def create_task(
     task_request: CreateTaskRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> TaskResponse:
+) -> Dict[str, Any]:
     """Create a new task."""
     # Authorization check
     require_permission(Permission.TASKS_CREATE, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = CreateTaskHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     command = CreateTaskCommand(
         tenant_id=request.state.tenant_id,
@@ -116,22 +194,47 @@ async def create_task(
         estimated_hours=task_request.estimated_hours
     )
 
-    return await handler.handle(command)
+    result = await mediator.send(command)
+    return create_success_response(result.model_dump()).model_dump()
 
 
-@router.put("/{task_id}", response_model=TaskResponse)
+@router.put("/{task_id}", response_model=Dict[str, Any])
 async def update_task(
     task_id: UUID,
     task_request: UpdateTaskRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> TaskResponse:
+) -> Dict[str, Any]:
     """Update a task."""
     # Authorization check
     require_permission(Permission.TASKS_UPDATE, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = UpdateTaskHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
+
+    # First get the task to check resource access
+    query = GetTaskByIdQuery(
+        task_id=task_id,
+        tenant_id=request.state.tenant_id
+    )
+    existing_task = await mediator.query(query)
+
+    # Resource-based authorization check
+    has_access = check_resource_access(
+        user_id=request.state.user_id,
+        user_roles=request.state.roles,
+        user_permissions=request.state.permissions,
+        resource_owner_id=existing_task.created_by_user_id,
+        resource_assigned_to_id=existing_task.assigned_to_user_id,
+        user_department_id=getattr(request.state, 'department_id', None),
+        resource_department_id=None
+    )
+
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to update this task"
+        )
 
     command = UpdateTaskCommand(
         task_id=task_id,
@@ -145,7 +248,8 @@ async def update_task(
         tags=task_request.tags
     )
 
-    return await handler.handle(command)
+    result = await mediator.send(command)
+    return create_success_response(result.model_dump()).model_dump()
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -158,8 +262,32 @@ async def delete_task(
     # Authorization check
     require_permission(Permission.TASKS_DELETE, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = DeleteTaskHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
+
+    # First get the task to check resource access
+    query = GetTaskByIdQuery(
+        task_id=task_id,
+        tenant_id=request.state.tenant_id
+    )
+    existing_task = await mediator.query(query)
+
+    # Resource-based authorization check
+    has_access = check_resource_access(
+        user_id=request.state.user_id,
+        user_roles=request.state.roles,
+        user_permissions=request.state.permissions,
+        resource_owner_id=existing_task.created_by_user_id,
+        resource_assigned_to_id=existing_task.assigned_to_user_id,
+        user_department_id=getattr(request.state, 'department_id', None),
+        resource_department_id=None
+    )
+
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to delete this task"
+        )
 
     command = DeleteTaskCommand(
         task_id=task_id,
@@ -167,22 +295,22 @@ async def delete_task(
         user_id=request.state.user_id
     )
 
-    await handler.handle(command)
+    await mediator.send(command)
 
 
-@router.patch("/{task_id}/assign", response_model=TaskResponse)
+@router.patch("/{task_id}/assign", response_model=Dict[str, Any])
 async def assign_task(
     task_id: UUID,
     assign_request: AssignTaskRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> TaskResponse:
+) -> Dict[str, Any]:
     """Assign task to a user."""
     # Authorization check
     require_permission(Permission.TASKS_ASSIGN, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = AssignTaskHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     command = AssignTaskCommand(
         task_id=task_id,
@@ -191,22 +319,23 @@ async def assign_task(
         assigned_by_user_id=request.state.user_id
     )
 
-    return await handler.handle(command)
+    result = await mediator.send(command)
+    return create_success_response(result.model_dump()).model_dump()
 
 
-@router.patch("/{task_id}/status", response_model=TaskResponse)
+@router.patch("/{task_id}/status", response_model=Dict[str, Any])
 async def change_task_status(
     task_id: UUID,
     status_request: ChangeTaskStatusRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> TaskResponse:
+) -> Dict[str, Any]:
     """Change task status."""
     # Authorization check
     require_permission(Permission.TASKS_UPDATE, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = ChangeTaskStatusHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     command = ChangeTaskStatusCommand(
         task_id=task_id,
@@ -216,22 +345,23 @@ async def change_task_status(
         blocked_reason=status_request.blocked_reason
     )
 
-    return await handler.handle(command)
+    result = await mediator.send(command)
+    return create_success_response(result.model_dump()).model_dump()
 
 
-@router.post("/{task_id}/comments", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{task_id}/comments", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
 async def add_task_comment(
     task_id: UUID,
     comment_request: AddTaskCommentRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> CommentResponse:
+) -> Dict[str, Any]:
     """Add a comment to a task."""
     # Authorization check
     require_permission(Permission.TASKS_READ, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = AddTaskCommentHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     command = AddTaskCommentCommand(
         task_id=task_id,
@@ -240,22 +370,24 @@ async def add_task_comment(
         content=comment_request.content
     )
 
-    return await handler.handle(command)
+    result = await mediator.send(command)
+    return create_success_response(result.model_dump()).model_dump()
 
 
-@router.get("/reports/statistics", response_model=TaskStatisticsResponse)
+@router.get("/reports/statistics", response_model=Dict[str, Any])
 async def get_task_statistics(
     request: Request,
     db: AsyncSession = Depends(get_db)
-) -> TaskStatisticsResponse:
+) -> Dict[str, Any]:
     """Get task statistics."""
     # Authorization check
     require_permission(Permission.REPORTS_VIEW, request.state.permissions)
 
-    repository = TaskRepository(db)
-    handler = GetTaskStatisticsHandler(repository)
+    # Setup mediator with handlers
+    setup_task_mediator(db)
 
     query = GetTaskStatisticsQuery(tenant_id=request.state.tenant_id)
 
-    return await handler.handle(query)
+    result = await mediator.query(query)
+    return create_success_response(result.model_dump()).model_dump()
 

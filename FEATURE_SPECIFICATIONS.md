@@ -200,3 +200,8 @@ These specifications provide:
 - ✅ **Security considerations** throughout
 - ✅ **Performance optimizations** identified
 
+
+**Notes / current repo status:**
+- The implementation uses `python-jose` for JWT handling (see `requirements.txt` and `app/shared/security/jwt.py`).
+- The event dispatcher and handlers are implemented, but a dedicated outbox table and background polling worker are not included in the repository and are left as TODO for production cross-process delivery.
+- The repository includes tenant models and repository code, but an HTTP router (`app/tenant/router.py`) exposing tenant management endpoints is not present and can be implemented if required.

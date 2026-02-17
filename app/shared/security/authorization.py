@@ -3,7 +3,6 @@ from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 from fastapi import HTTPException, status
-from app.shared.context import get_user_id, get_tenant_id
 
 
 class Role(str, Enum):
@@ -27,13 +26,6 @@ class Permission(str, Enum):
     REPORTS_VIEW = "reports.view"
     USERS_MANAGE = "users.manage"
     TENANT_CONFIGURE = "tenant.configure"
-
-
-class SubscriptionPlan(str, Enum):
-    """Subscription plans."""
-    BASIC = "BASIC"
-    PROFESSIONAL = "PROFESSIONAL"
-    ENTERPRISE = "ENTERPRISE"
 
 
 def check_permission(user_permissions: List[str], required_permission: str) -> bool:

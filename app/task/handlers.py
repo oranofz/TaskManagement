@@ -1,5 +1,4 @@
 """Task command and query handlers."""
-from datetime import datetime
 from app.task.commands import (
     CreateTaskCommand,
     UpdateTaskCommand,
@@ -23,6 +22,7 @@ from app.task.domain.events import (
 from app.task.schemas import TaskResponse, TaskListResponse, CommentResponse, TaskStatisticsResponse
 from app.shared.events.dispatcher import event_dispatcher
 from app.shared.cache.redis_client import redis_client
+from app.shared.cache.decorators import cached
 from fastapi import HTTPException, status
 from loguru import logger
 
@@ -310,20 +310,27 @@ class GetTaskByIdHandler:
 
 
 class GetUserTasksHandler:
-    """Handler for getting user tasks."""
+    """Handler for getting user tasks with caching."""
 
     def __init__(self, repository: TaskRepository) -> None:
         """Initialize handler."""
         self.repository = repository
 
     async def handle(self, query: GetUserTasksQuery) -> TaskListResponse:
-        """Handle get user tasks."""
+        """Handle get user tasks with Redis caching."""
+        return await self._get_tasks_cached(query)
+
+    @cached(ttl=60, key_prefix="tasks:list")
+    async def _get_tasks_cached(self, query: GetUserTasksQuery) -> TaskListResponse:
+        """Fetch tasks from database with caching."""
         tasks, total = await self.repository.get_user_tasks(
             tenant_id=query.tenant_id,
             user_id=query.user_id,
             status=query.status,
             page=query.page,
-            page_size=query.page_size
+            page_size=query.page_size,
+            sort_by=query.sort_by,
+            sort_order=query.sort_order
         )
 
         return TaskListResponse(
@@ -334,15 +341,21 @@ class GetUserTasksHandler:
         )
 
 
+
 class GetTaskStatisticsHandler:
-    """Handler for getting task statistics."""
+    """Handler for getting task statistics with caching."""
 
     def __init__(self, repository: TaskRepository) -> None:
         """Initialize handler."""
         self.repository = repository
 
     async def handle(self, query: GetTaskStatisticsQuery) -> TaskStatisticsResponse:
-        """Handle get task statistics."""
+        """Handle get task statistics with Redis caching."""
+        return await self._get_statistics_cached(query)
+
+    @cached(ttl=300, key_prefix="tasks:statistics")
+    async def _get_statistics_cached(self, query: GetTaskStatisticsQuery) -> TaskStatisticsResponse:
+        """Fetch statistics from database with caching."""
         stats = await self.repository.get_task_statistics(query.tenant_id)
 
         return TaskStatisticsResponse(
@@ -352,4 +365,5 @@ class GetTaskStatisticsHandler:
             overdue_tasks=stats["overdue_tasks"],
             completed_this_month=0
         )
+
 

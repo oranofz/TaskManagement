@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # HaveIBeenPwned
     haveibeenpwned_api_key: Optional[str] = Field(default=None, alias="HAVEIBEENPWNED_API_KEY")
 
+    # OpenTelemetry / Distributed Tracing
+    otlp_endpoint: Optional[str] = Field(default=None, alias="OTLP_ENDPOINT")
+    otel_service_name: str = Field(default="task-management-system", alias="OTEL_SERVICE_NAME")
+    otel_enabled: bool = Field(default=True, alias="OTEL_ENABLED")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

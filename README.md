@@ -30,7 +30,7 @@ This system follows a **Modular Monolith** architecture with clear bounded conte
 - **Database**: PostgreSQL 16
 - **Cache**: Redis 7
 - **Validation**: Pydantic v2
-- **Auth**: PyJWT (RS256), passlib (Argon2)
+- **Auth**: python-jose (RS256), passlib (Argon2)
 - **Testing**: pytest, pytest-asyncio
 
 ## Quick Start
@@ -69,10 +69,6 @@ This script will:
 
 If you prefer manual control:
 
-### Manual Setup (Alternative)
-
-If you prefer manual control:
-
 1. **Install dependencies**:
 ```bash
 pip install -r requirements.txt
@@ -88,6 +84,8 @@ docker-compose up -d
 python generate_keys.py
 ```
 
+For MFA testing: `python generate_mfa_code.py <SECRET>`
+
 4. **Create `.env` file**:
 ```bash
 Copy-Item .env.example .env
@@ -98,6 +96,8 @@ Copy-Item .env.example .env
 ```bash
 python init_db.py
 ```
+
+> Note: `alembic.ini` is present but the repository does not currently include an `app/migrations` folder with migration scripts. You can either run migrations if you add them, or use `init_db.py` for initial table creation as the setup script does.
 
 6. **Start the application**:
 ```bash
@@ -126,4 +126,3 @@ pytest --cov=app --cov-report=html
 ## License
 
 Proprietary - All rights reserved
-

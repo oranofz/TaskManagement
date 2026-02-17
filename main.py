@@ -1,4 +1,5 @@
 """Main FastAPI application."""
+import os
 import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -14,6 +15,14 @@ from app.shared.middleware.logging import logging_middleware
 from app.shared.middleware.tenant_resolver import tenant_resolver_middleware
 from app.shared.middleware.auth import auth_middleware
 from app.shared.middleware.rate_limiter import rate_limit_middleware
+from app.shared.observability.tracing import (
+    setup_tracing,
+    instrument_fastapi,
+    instrument_sqlalchemy,
+    instrument_redis,
+    get_current_trace_id
+)
+from app.shared.response import create_success_response, create_error_response
 from app.auth.router import router as auth_router
 from app.task.router import router as task_router
 
@@ -40,6 +49,18 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting application...")
 
+    # Initialize OpenTelemetry distributed tracing
+    otlp_endpoint = os.environ.get("OTLP_ENDPOINT")
+    setup_tracing(
+        service_name="task-management-system",
+        service_version="1.0.0",
+        environment=settings.environment,
+        otlp_endpoint=otlp_endpoint
+    )
+
+    # Instrument Redis before connecting (instrumentation must happen before client creation)
+    instrument_redis()
+
     # Connect to Redis
     try:
         await redis_client.connect()
@@ -54,6 +75,9 @@ async def lifespan(app: FastAPI):
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("Database connected successfully")
+
+        # Instrument SQLAlchemy after engine is verified
+        instrument_sqlalchemy(engine)
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}")
         logger.error("Database is required for the application to run. Please ensure PostgreSQL is running.")
@@ -93,6 +117,9 @@ app = FastAPI(
         "persistAuthorization": True
     }
 )
+
+# Instrument FastAPI with OpenTelemetry
+instrument_fastapi(app)
 
 
 # Configure OpenAPI security scheme
@@ -225,11 +252,12 @@ app.include_router(task_router)
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    health_status = {
+    health_data = {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0",
-        "environment": settings.environment
+        "environment": settings.environment,
+        "trace_id": get_current_trace_id()
     }
 
     # Check database connection
@@ -237,28 +265,38 @@ async def health_check():
         from sqlalchemy import text
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-        health_status["database"] = "connected"
+        health_data["database"] = "connected"
     except Exception as e:
-        health_status["database"] = "disconnected"
-        health_status["status"] = "unhealthy"
+        health_data["database"] = "disconnected"
+        health_data["status"] = "unhealthy"
         logger.error(f"Database health check failed: {e}")
 
     # Check Redis connection
     try:
         if redis_client.redis:
             await redis_client.redis.ping()
-            health_status["redis"] = "connected"
+            health_data["redis"] = "connected"
         else:
-            health_status["redis"] = "disconnected"
-            health_status["status"] = "unhealthy"
+            health_data["redis"] = "disconnected"
+            health_data["status"] = "unhealthy"
     except Exception as e:
-        health_status["redis"] = "disconnected"
-        health_status["status"] = "unhealthy"
+        health_data["redis"] = "disconnected"
+        health_data["status"] = "unhealthy"
         logger.error(f"Redis health check failed: {e}")
 
-    status_code = status.HTTP_200_OK if health_status["status"] == "healthy" else status.HTTP_503_SERVICE_UNAVAILABLE
+    is_healthy = health_data["status"] == "healthy"
+    status_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
 
-    return JSONResponse(content=health_status, status_code=status_code)
+    if is_healthy:
+        response = create_success_response(health_data)
+    else:
+        response = create_error_response(
+            error_message="Service unhealthy",
+            error_code="SERVICE_UNHEALTHY"
+        )
+        response.data = health_data
+
+    return JSONResponse(content=response.model_dump(), status_code=status_code)
 
 
 @app.get("/ready")
@@ -272,16 +310,25 @@ async def readiness_check():
         if redis_client.redis:
             await redis_client.redis.ping()
         else:
+            response = create_error_response(
+                error_message="Redis not connected",
+                error_code="REDIS_UNAVAILABLE"
+            )
             return JSONResponse(
-                content={"status": "not_ready", "reason": "Redis not connected"},
+                content=response.model_dump(),
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        return {"status": "ready"}
+        response = create_success_response({"status": "ready"})
+        return JSONResponse(content=response.model_dump())
     except Exception as e:
         logger.error(f"Readiness check failed: {e}")
+        response = create_error_response(
+            error_message=str(e),
+            error_code="READINESS_CHECK_FAILED"
+        )
         return JSONResponse(
-            content={"status": "not_ready", "reason": str(e)},
+            content=response.model_dump(),
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE
         )
 
@@ -289,15 +336,20 @@ async def readiness_check():
 @app.get("/live")
 async def liveness_check():
     """Kubernetes liveness probe - checks if app is alive."""
-    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
+    response = create_success_response({
+        "status": "alive",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    return JSONResponse(content=response.model_dump())
 
 
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {
+    response = create_success_response({
         "message": "Enterprise Task Management System API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/health"
-    }
+    })
+    return JSONResponse(content=response.model_dump())

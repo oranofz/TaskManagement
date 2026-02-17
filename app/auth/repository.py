@@ -4,7 +4,8 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.auth.domain.models import User, RefreshToken
+from app.auth.domain.models import User, RefreshToken, PasswordResetToken
+from app.shared.database import get_utc_now
 from loguru import logger
 
 
@@ -94,4 +95,69 @@ class AuthRepository:
             token.is_revoked = True
         await self.session.commit()
         logger.warning(f"Token family revoked: {family_id}")
+
+    async def revoke_all_user_tokens(self, user_id: UUID, tenant_id: UUID) -> None:
+        """Revoke all refresh tokens for a user."""
+        result = await self.session.execute(
+            select(RefreshToken).where(
+                RefreshToken.user_id == user_id,
+                RefreshToken.tenant_id == tenant_id,
+                RefreshToken.is_revoked == False
+            )
+        )
+        tokens = result.scalars().all()
+        for token in tokens:
+            token.is_revoked = True
+        await self.session.commit()
+        logger.info(f"All tokens revoked for user: {user_id}")
+
+    async def store_password_reset_token(
+        self,
+        user_id: UUID,
+        tenant_id: UUID,
+        token: str,
+        expires_at: datetime
+    ) -> PasswordResetToken:
+        """Store password reset token."""
+        reset_token = PasswordResetToken(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            token=token,
+            expires_at=expires_at
+        )
+        self.session.add(reset_token)
+        await self.session.commit()
+        await self.session.refresh(reset_token)
+        logger.info(f"Password reset token created for user: {user_id}")
+        return reset_token
+
+    async def get_password_reset_token(self, token: str) -> Optional[dict]:
+        """Get valid password reset token."""
+        result = await self.session.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token == token,
+                PasswordResetToken.is_used == False,
+                PasswordResetToken.expires_at > get_utc_now()
+            )
+        )
+        reset_token = result.scalar_one_or_none()
+        if reset_token:
+            return {
+                "user_id": reset_token.user_id,
+                "tenant_id": reset_token.tenant_id
+            }
+        return None
+
+    async def invalidate_password_reset_token(self, token: str) -> None:
+        """Invalidate password reset token."""
+        result = await self.session.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.token == token
+            )
+        )
+        reset_token = result.scalar_one_or_none()
+        if reset_token:
+            reset_token.is_used = True
+            await self.session.commit()
+            logger.info(f"Password reset token invalidated")
 

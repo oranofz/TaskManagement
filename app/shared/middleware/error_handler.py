@@ -1,10 +1,10 @@
 """Error handling middleware."""
-import traceback
 from typing import Callable
 from fastapi import Request, Response, status, HTTPException
 from fastapi.responses import JSONResponse
 from loguru import logger
 from app.shared.context import get_correlation_id
+from app.shared.response import create_error_response
 
 
 async def error_handler_middleware(request: Request, call_next: Callable) -> Response:
@@ -35,19 +35,13 @@ async def error_handler_middleware(request: Request, call_next: Callable) -> Res
             exc_info=True
         )
 
+        error_response = create_error_response(
+            error_message="An internal server error occurred",
+            error_code="INTERNAL_SERVER_ERROR"
+        )
+
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "success": False,
-                "error": {
-                    "code": "INTERNAL_SERVER_ERROR",
-                    "message": "An internal server error occurred",
-                    "details": {}
-                },
-                "metadata": {
-                    "timestamp": None,
-                    "correlation_id": correlation_id
-                }
-            }
+            content=error_response.model_dump()
         )
 

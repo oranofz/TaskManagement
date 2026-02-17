@@ -1,5 +1,5 @@
 """Authentication middleware."""
-from typing import Callable, Optional
+from typing import Callable
 from uuid import UUID
 from fastapi import Request, Response, HTTPException, status
 from jose import JWTError

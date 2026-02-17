@@ -3,13 +3,6 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from app.shared.database import Base
-from app.config import settings
-
-# Import all models to ensure they're registered with Base
-from app.auth.domain.models import User, RefreshToken
-from app.task.domain.models import Task, Comment, AuditLogEntry
-from app.tenant.domain.models import Tenant, Department, Team, Project
-
 
 DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/task_management"
 

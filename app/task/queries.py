@@ -21,6 +21,8 @@ class GetUserTasksQuery(Query):
     status: Optional[TaskStatus] = None
     page: int = 1
     page_size: int = 20
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
 
 
 @dataclass

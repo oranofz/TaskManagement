@@ -210,7 +210,7 @@ Get-Content logs/app_*.log -Tail 50
 # Create migration
 alembic revision --autogenerate -m "description"
 
-# Apply migrations
+# Apply migrations (if you maintain Alembic migrations in `app/migrations`)
 alembic upgrade head
 
 # Rollback
@@ -251,4 +251,3 @@ For issues or questions:
 2. Review ARCHITECTURE.md for design decisions
 3. Check application logs in logs/ directory
 4. Verify all services are running with `docker-compose ps`
-

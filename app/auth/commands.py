@@ -51,3 +51,17 @@ class VerifyMFACommand(Command):
     tenant_id: UUID
     code: str
 
+
+@dataclass
+class RequestPasswordResetCommand(Command):
+    """Request password reset command."""
+    email: str
+    tenant_id: UUID
+
+
+@dataclass
+class ResetPasswordCommand(Command):
+    """Reset password command."""
+    token: str
+    new_password: str
+

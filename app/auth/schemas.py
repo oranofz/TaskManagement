@@ -50,12 +50,6 @@ class LogoutRequest(BaseModel):
     refresh_token: str
 
 
-class EnableMFAResponse(BaseModel):
-    """Enable MFA response schema."""
-    secret: str
-    qr_code_url: str
-
-
 class VerifyMFARequest(BaseModel):
     """Verify MFA request schema."""
     code: str

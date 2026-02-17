@@ -49,7 +49,8 @@ class RedisClient:
             return False
 
         try:
-            serialized = json.dumps(value)
+            # Use default=str so UUIDs and other non-JSON types serialize to their string representation
+            serialized = json.dumps(value, default=str)
             await self.redis.setex(key, ttl, serialized)
             return True
         except Exception as e:
